@@ -12,68 +12,38 @@ import { createSupabaseServerClient } from "@/lib/supabase-server";
 
 const openaiApiKey = process.env.OPENAI_API_KEY;
 
-const openai=openaiApiKey? new OpenAI({apiKey: openaiApiKey,}): null;
+const openai = openaiApiKey ? new OpenAI({ apiKey: openaiApiKey }) : null;
 
 function buildSystemPrompt(product: Product): string {
-  const faqText =product.faq.length===0? "No FAQs are provided.":product.faq
-          .map((item, index) =>`Q${index + 1}: ${item.question}\nA${index + 1}: ${item.answer}`).join("\n\n");
-  //console.log("FAQ TEXT:", faqText);
-  const termsText =Object.keys(product.terms).length === 0
-      ? "No additional terms provided."
-  :Object.entries(product.terms).map(([key, value]) => `${key}: ${JSON.stringify(value)}`).join("\n");
-//console.log("TERMS TEXT:", termsText);
-  return [
-    "You are a loan suitability assistant helping the user decide whether this specific product is a good fit for them.",
-    "Use only the product data provided below. Do not invent missing numbers or policies.",
-    "If the user shares their income, credit score, desired tenure, or other constraints, compare those explicitly against the product requirements.",
-    "If key details are missing to make a clear recommendation, ask brief follow-up questions before answering.",
-    "Always format your answer exactly with the following sections in this order, using plain text only:",
-    "Overview:",
-    "Eligibility:",
-    "Costs:",
-    "Pros:",
-    "Cons:",
-    "Who it is good for:",
-    "Recommendation:",
-    "Each section should be a short paragraph or 3–5 bullet points that are easy to scan.",
-    "Do not use markdown headings, numbered lists, emojis, tables, or code blocks.",
-    "Do not give legal, tax, or personalized financial advice. Instead, explain tradeoffs and when the user should talk to a human advisor.",
-    "If the answer is not clearly available in the data, say you do not know.",
-    "",
-    `Product Name: ${product.name}`,
-    `Bank: ${product.bank}`,
-    `Type: ${product.type}`,
-    `APR: ${product.rate_apr}%`,
-    `Tenure Range (months): ${product.tenure_min_months}-${product.tenure_max_months}`,
-    `Minimum Income: ${product.min_income}`,
-    `Minimum Credit Score: ${product.min_credit_score}`,
-    `Processing Fee (% of amount): ${product.processing_fee_pct}`,
-    `Prepayment Allowed: ${product.prepayment_allowed ? "Yes" : "No"}`,
-    `Disbursal Speed: ${product.disbursal_speed}`,
-    `Documentation Level: ${product.docs_level}`,
-    product.summary ? `Summary: ${product.summary}` : "",
-    "",
-    "FAQs:",
-    faqText,
-    "",
-    "Additional Terms:",
-    termsText,
-  ].filter((line)=>line.trim().length>0).join("\n");
+  return `
+You are a specialized financial assistant for "The Loan Picks Dashboard".
+Your task is to answer user questions about a specific loan product based ONLY on the provided context.
+
+STRICT INSTRUCTIONS:
+1. Answer solely using the Product Data provided below.
+2. Do not use outside knowledge or make assumptions about missing data.
+3. Keep answers concise, professional, and easy to read.
+4. If the user asks for information that is NOT present in the Product Data, reply: "I don’t have that information in this product’s data."
+
+PRODUCT DATA:
+${JSON.stringify(product, null, 2)}
+`;
 }
 
-function buildMessages(systemPrompt: string,history: ChatHistoryItem[],message: string) {
+function buildMessages(systemPrompt: string, history: ChatHistoryItem[], message: string) {
   // console.log("System Prompt:", systemPrompt);
   //console.log("Chat History:", history);
   return [
     { role: "system" as const, content: systemPrompt },
-    ...history.map((item)=>({
+    ...history.map((item) => ({
       role: item.role,
       content: item.content,
     })),
     { role: "user" as const, content: message },
   ];
 }
-// when if OpenAI is not available case 
+
+// when if OpenAI is not available case
 function buildFallbackAnswer(product: Product): string {
   return [
     `This is a ${product.type} loan from ${product.bank} named "${product.name}".`,
@@ -87,14 +57,22 @@ function buildFallbackAnswer(product: Product): string {
 export async function POST(request: NextRequest) {
   try {
     const json = await request.json();
-  const parsed = aiAskRequestSchema.parse(json);
+    const parsed = aiAskRequestSchema.parse(json);
 //console.log("Parsed Request:", parsed);
-       const supabase = createSupabaseServerClient();
-    const { data, error } = await supabase.from("products")
+    const authHeader = request.headers.get("Authorization");
+    const accessToken =
+      authHeader && authHeader.startsWith("Bearer ")
+        ? authHeader.slice("Bearer ".length).trim()
+        : null;
+    const supabase = createSupabaseServerClient(accessToken);
+    const { data: userData } = await supabase.auth.getUser();
+    const currentUserId = userData?.user?.id ?? null;
+
+    const { data, error } = await supabase
+      .from("products")
       .select("*")
       .eq("id", parsed.productId)
       .single();
-    // console.log("Supabase Data:", data, "Error:", error);
 
     if (error || !data) {
       return NextResponse.json(
@@ -103,15 +81,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const product=productSchema.parse(data);
+    const product = productSchema.parse(data);
     const systemPrompt = buildSystemPrompt(product);
-const messages=buildMessages(
-      systemPrompt,
-      parsed.history,
-      parsed.message
-    );
-    //console.log("Final Messages:", messages);
+    const messages = buildMessages(systemPrompt, parsed.history, parsed.message);
+
     let answer = buildFallbackAnswer(product);
+
     if (openai) {
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
@@ -124,8 +99,24 @@ const messages=buildMessages(
       }
     }
 
+    try {
+      await supabase.from("ai_chat_messages").insert([
+        {
+          user_id: currentUserId,
+          product_id: parsed.productId,
+          role: "user",
+          content: parsed.message,
+        },
+        {
+          user_id: currentUserId,
+          product_id: parsed.productId,
+          role: "assistant",
+          content: answer,
+        },
+      ]);
+    } catch {}
+
     const body = aiAskResponseSchema.parse({ message: answer });
-    //console.log("Response Body:", body);
 
     return NextResponse.json(body);
   } catch (error) {

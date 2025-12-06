@@ -78,7 +78,7 @@ export function ProductCard(props: ProductCardProps) {
               Tenure
             </div>
             <div className="font-medium">
-              {product.tenure_min_months}–{product.tenure_max_months} months
+              {product.tenure_min_months}-{product.tenure_max_months} months
             </div>
           </div>
         </div>
@@ -103,4 +103,3 @@ export function ProductCard(props: ProductCardProps) {
     </Card>
   );
 }
-

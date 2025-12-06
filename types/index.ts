@@ -76,4 +76,3 @@ export const aiAskResponseSchema = z.object({
 });
 
 export type AiAskResponse = z.infer<typeof aiAskResponseSchema>;
-
