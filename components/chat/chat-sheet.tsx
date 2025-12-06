@@ -1,14 +1,22 @@
 "use client";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
-import {aiAskResponseSchema,type ChatHistoryItem,} from "@/types";
+import { aiAskResponseSchema, type ChatHistoryItem } from "@/types";
 import type { Product } from "@/types";
+import { supabaseClient } from "@/lib/supabase-client";
 
 type ChatSheetProps = {
   product: Product;
@@ -21,14 +29,14 @@ type MessageBubbleProps = {
 
 function MessageBubble(props: MessageBubbleProps) {
   const { message } = props;
-  const isUser=message.role==="user";
-  //console.log("Mesage:", message);
+  const isUser = message.role === "user";
 
   return (
     <div className="mb-3 flex">
       <div
         className={
-          isUser? "ml-auto max-w-[80%] whitespace-pre-line rounded-2xl bg-zinc-900 px-3 py-2 text-sm text-zinc-50 dark:bg-zinc-50 dark:text-zinc-900"
+          isUser
+            ? "ml-auto max-w-[80%] whitespace-pre-line rounded-2xl bg-zinc-900 px-3 py-2 text-sm text-zinc-50 dark:bg-zinc-50 dark:text-zinc-900"
             : "mr-auto max-w-[80%] whitespace-pre-line rounded-2xl bg-zinc-100 px-3 py-2 text-sm text-zinc-900 dark:bg-zinc-900 dark:text-zinc-50"
         }
       >
@@ -39,13 +47,13 @@ function MessageBubble(props: MessageBubbleProps) {
 }
 
 export function ChatSheet(props: ChatSheetProps) {
-const { product, trigger }=props;
-   const [history, setHistory]=useState<ChatHistoryItem[]>([]);
- const [input, setInput]=useState("");
-   const [loading, setLoading]=useState(false);
-  const [error, setError]=useState<string | null>(null);
-  const bottomRef=useRef<HTMLDivElement | null>(null);
-  //console.log("ChatSheet Rendered with product:", product, "history:", history, "loading:", loading);
+  const { product, trigger } = props;
+  const [history, setHistory] = useState<ChatHistoryItem[]>([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const bottomRef = useRef<HTMLDivElement | null>(null);
 
   const headerBadges = useMemo(() => {
     const list: string[] = [];
@@ -62,19 +70,60 @@ const { product, trigger }=props;
     }
   }, [history, loading]);
 
-  const handleSend=async()=> {
-    const trimmed=input.trim();
-    if (!trimmed||loading) return;
-        const nextUserMessage: ChatHistoryItem = {
+  useEffect(() => {
+    const loadUserAndHistory = async () => {
+      const { data } = await supabaseClient.auth.getUser();
+      const authUser = data.user;
+      const nextUserId = authUser?.id ?? null;
+      setUserId(nextUserId);
+
+      if (!nextUserId) {
+        return;
+      }
+
+      const { data: rows } = await supabaseClient
+        .from("ai_chat_messages")
+        .select("role, content")
+        .eq("product_id", product.id)
+        .eq("user_id", nextUserId)
+        .order("created_at", { ascending: true });
+
+      if (!rows) {
+        return;
+      }
+
+      const typedRows = rows as {
+        role: "user" | "assistant";
+        content: string | null;
+      }[];
+
+      const mapped: ChatHistoryItem[] = typedRows.map((row) => ({
+        role: row.role === "assistant" ? "assistant" : "user",
+        content: row.content ?? "",
+      }));
+
+      setHistory(mapped);
+    };
+
+    void loadUserAndHistory();
+  }, [product.id]);
+
+  const handleSend = async () => {
+    const trimmed = input.trim();
+    if (!trimmed || loading) {
+      return;
+    }
+
+    const nextUserMessage: ChatHistoryItem = {
       role: "user",
       content: trimmed,
     };
+
     const baseHistory = [...history, nextUserMessage];
     setHistory(baseHistory);
     setInput("");
     setLoading(true);
     setError(null);
-    //console.log("Sending message:", trimmed, "with history:", baseHistory);
 
     try {
       const response = await fetch("/api/ai/ask", {
@@ -86,12 +135,14 @@ const { product, trigger }=props;
           productId: product.id,
           message: trimmed,
           history: baseHistory,
+          userId,
         }),
       });
-//console.log("API Response2:", response);
+
       if (!response.ok) {
         throw new Error("Request failed");
       }
+
       const data = await response.json();
       const parsed = aiAskResponseSchema.parse(data);
 
@@ -179,3 +230,4 @@ const { product, trigger }=props;
     </Sheet>
   );
 }
+
