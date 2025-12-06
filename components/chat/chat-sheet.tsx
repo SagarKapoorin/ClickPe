@@ -230,4 +230,3 @@ export function ChatSheet(props: ChatSheetProps) {
     </Sheet>
   );
 }
-

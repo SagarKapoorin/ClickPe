@@ -22,7 +22,7 @@ Your task is to answer user questions about a specific loan product based ONLY o
 STRICT INSTRUCTIONS:
 1. Answer solely using the Product Data provided below.
 2. Do not use outside knowledge or make assumptions about missing data.
-5. Keep answers concise, professional, and easy to read.
+3. Keep answers concise, professional, and easy to read.
 
 PRODUCT DATA:
 ${JSON.stringify(product, null, 2)}
