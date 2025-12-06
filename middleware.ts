@@ -8,8 +8,9 @@ export function middleware(request: NextRequest) {
       (cookie) =>
         cookie.name.startsWith("sb-") && cookie.name.endsWith("-auth-token"),
     );
-
-  if (!hasSupabaseSession) {
+  const hasLoginFlag =
+    request.cookies.get("lp_logged_in")?.value === "1";
+  if (!hasSupabaseSession && !hasLoginFlag) {
     const loginUrl = new URL("/auth", request.url);
     loginUrl.searchParams.set("redirectTo", request.nextUrl.pathname);
     return NextResponse.redirect(loginUrl);

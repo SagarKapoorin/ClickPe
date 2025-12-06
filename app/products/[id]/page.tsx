@@ -23,14 +23,16 @@ async function getProductById(id: string): Promise<Product | null> {
   if (error || !data) {
     return null;
   }
-//console.log("Fetched Product:", data);
+  //console.log("Fetched Product:", data);
   return productSchema.parse(data);
 }
 
-export default async function ProductDetailPage(props: {
+export default async function ProductDetailPage({
+  params,
+}: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await props.params;
+  const { id } = await params;
   const product = await getProductById(id);
 
   if (!product) {
@@ -83,7 +85,7 @@ export default async function ProductDetailPage(props: {
               Tenure
             </div>
             <div className="font-medium">
-              {product.tenure_min_months}–{product.tenure_max_months} months
+              {product.tenure_min_months}-{product.tenure_max_months} months
             </div>
           </div>
           <div>
@@ -142,4 +144,3 @@ export default async function ProductDetailPage(props: {
     </div>
   );
 }
-

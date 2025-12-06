@@ -16,23 +16,41 @@ export function UserMenu() {
   const router = useRouter();
 
   useEffect(() => {
-    const load = async () => {
-      const { data } = await supabaseClient.auth.getUser();
-      const authUser = data.user;
-      if (authUser?.id && authUser.email) {
+    const applySessionUser = (sessionUser: { id: string; email?: string | null } | null) => {
+      if (sessionUser?.id && sessionUser.email) {
         setUser({
-          id: authUser.id,
-          email: authUser.email,
+          id: sessionUser.id,
+          email: sessionUser.email,
         });
+      } else {
+        setUser(null);
       }
       setLoading(false);
     };
 
+    const load = async () => {
+      const { data } = await supabaseClient.auth.getUser();
+      applySessionUser(data.user ?? null);
+    };
+
     void load();
+
+    const { data: subscriptionData } = supabaseClient.auth.onAuthStateChange(
+      (_event, session) => {
+        applySessionUser(session?.user ?? null);
+      }
+    );
+
+    return () => {
+      subscriptionData.subscription.unsubscribe();
+    };
   }, []);
 
   const handleLogout = async () => {
     await supabaseClient.auth.signOut();
+    if (typeof document !== "undefined") {
+      document.cookie = "lp_logged_in=; path=/; max-age=0";
+    }
     setUser(null);
     router.push("/auth");
   };
@@ -68,4 +86,3 @@ export function UserMenu() {
     </div>
   );
 }
-

@@ -14,6 +14,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert } from "@/components/ui/alert";
 import { aiAskResponseSchema, type ChatHistoryItem } from "@/types";
 import type { Product } from "@/types";
 import { supabaseClient } from "@/lib/supabase-client";
@@ -52,7 +53,7 @@ export function ChatSheet(props: ChatSheetProps) {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
   const headerBadges = useMemo(() => {
@@ -75,7 +76,10 @@ export function ChatSheet(props: ChatSheetProps) {
       const { data } = await supabaseClient.auth.getUser();
       const authUser = data.user;
       const nextUserId = authUser?.id ?? null;
-      setUserId(nextUserId);
+
+       const { data: sessionData } = await supabaseClient.auth.getSession();
+       const token = sessionData.session?.access_token ?? null;
+       setAccessToken(token);
 
       if (!nextUserId) {
         return;
@@ -126,16 +130,20 @@ export function ChatSheet(props: ChatSheetProps) {
     setError(null);
 
     try {
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+      };
+      if (accessToken) {
+        headers["Authorization"] = `Bearer ${accessToken}`;
+      }
+
       const response = await fetch("/api/ai/ask", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify({
           productId: product.id,
           message: trimmed,
           history: baseHistory,
-          userId,
         }),
       });
 
@@ -207,9 +215,9 @@ export function ChatSheet(props: ChatSheetProps) {
             <div ref={bottomRef} />
           </ScrollArea>
           {error && (
-            <div className="text-xs text-red-500">
+            <Alert variant="destructive">
               {error}
-            </div>
+            </Alert>
           )}
           <div className="flex items-center gap-2">
             <Input

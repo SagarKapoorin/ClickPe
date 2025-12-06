@@ -48,7 +48,19 @@ export function SheetTrigger(props: SheetTriggerProps) {
   };
 
   return (
-    <span onClick={handleClick}>{children}</span>
+    <span
+      role="button"
+      tabIndex={0}
+      onClick={handleClick}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          handleClick();
+        }
+      }}
+    >
+      {children}
+    </span>
   );
 }
 
@@ -74,6 +86,7 @@ export function SheetContent(props: SheetContentProps) {
         <button
           type="button"
           onClick={handleClose}
+          aria-label="Close"
           className="mb-2 inline-flex h-8 w-8 items-center justify-center rounded-full text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900"
         >
           ×

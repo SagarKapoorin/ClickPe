@@ -12,7 +12,7 @@ import { createSupabaseServerClient } from "@/lib/supabase-server";
 
 const openaiApiKey = process.env.OPENAI_API_KEY;
 
-const openai=openaiApiKey? new OpenAI({apiKey: openaiApiKey,}): null;
+const openai = openaiApiKey ? new OpenAI({ apiKey: openaiApiKey }) : null;
 
 function buildSystemPrompt(product: Product): string {
   return `
@@ -23,25 +23,27 @@ STRICT INSTRUCTIONS:
 1. Answer solely using the Product Data provided below.
 2. Do not use outside knowledge or make assumptions about missing data.
 3. Keep answers concise, professional, and easy to read.
+4. If the user asks for information that is NOT present in the Product Data, reply: "I don’t have that information in this product’s data."
 
 PRODUCT DATA:
 ${JSON.stringify(product, null, 2)}
 `;
 }
 
-function buildMessages(systemPrompt: string,history: ChatHistoryItem[],message: string) {
+function buildMessages(systemPrompt: string, history: ChatHistoryItem[], message: string) {
   // console.log("System Prompt:", systemPrompt);
   //console.log("Chat History:", history);
   return [
     { role: "system" as const, content: systemPrompt },
-    ...history.map((item)=>({
+    ...history.map((item) => ({
       role: item.role,
       content: item.content,
     })),
     { role: "user" as const, content: message },
   ];
 }
-// when if OpenAI is not available case 
+
+// when if OpenAI is not available case
 function buildFallbackAnswer(product: Product): string {
   return [
     `This is a ${product.type} loan from ${product.bank} named "${product.name}".`,
@@ -56,8 +58,15 @@ export async function POST(request: NextRequest) {
   try {
     const json = await request.json();
     const parsed = aiAskRequestSchema.parse(json);
-    const supabase = createSupabaseServerClient();
-    const currentUserId = parsed.userId ?? null;
+//console.log("Parsed Request:", parsed);
+    const authHeader = request.headers.get("Authorization");
+    const accessToken =
+      authHeader && authHeader.startsWith("Bearer ")
+        ? authHeader.slice("Bearer ".length).trim()
+        : null;
+    const supabase = createSupabaseServerClient(accessToken);
+    const { data: userData } = await supabase.auth.getUser();
+    const currentUserId = userData?.user?.id ?? null;
 
     const { data, error } = await supabase
       .from("products")

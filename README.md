@@ -22,7 +22,7 @@ Browser (Next.js App Router)
 ├─ Data & Types
 │  ├─ types/index.ts       → Zod schemas + TS types for products, users, chat
 │  ├─ lib/supabase-client  → Browser Supabase client (anon key)
-│  └─ lib/supabase-server  → Simple server Supabase client (no cookies)
+│  └─ lib/supabase-server  → Server Supabase client (optional auth header)
 │
 ├─ API Routes
 │  └─ /api/ai/ask       → Grounded product Q&A with OpenAI, chat persistence
@@ -60,9 +60,9 @@ cp .env.example .env.local
 
 Fill in:
 
-- `NEXT_PUBLIC_SUPABASE_URL` – Supabase project URL (from **Project Settings → API**).
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` – the **anon public** key (never the service_role key).
-- `OPENAI_API_KEY` – your OpenAI key (optional but recommended; without it, the AI chat uses a local fallback summary).
+- `NEXT_PUBLIC_SUPABASE_URL` → Supabase project URL (from **Project Settings → API**).
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` → the **anon public** key (never the service_role key).
+- `OPENAI_API_KEY` → your OpenAI key (optional but recommended; without it, the AI chat uses a local fallback summary).
 
 ### 4. Auth configuration
 
@@ -94,8 +94,24 @@ Key routes:
   - `/dashboard/:path*`
   - `/products/:path*`
   - `/conversations/:path*`
-- The middleware checks for a Supabase auth session cookie whose name matches `sb-*-auth-token`. If no session is found, the user is redirected to `/auth?redirectTo=<original-path>`.
-- API routes (including `/api/ai/ask`) currently rely on the client to pass an optional `userId` in the request body for persistence; they do not enforce auth on the server.
+- The middleware checks for:
+  - A Supabase auth session cookie whose name matches `sb-*-auth-token`, or
+  - A lightweight `lp_logged_in=1` flag cookie that is set after a successful login.
+- If neither is present, the user is redirected to `/auth?redirectTo=<original-path>`.
+- API routes (including `/api/ai/ask`) do not require auth to respond, but when an authenticated request is made (via Supabase access token in the `Authorization: Bearer <token>` header), AI chat messages are persisted against that user.
+
+## Filters on `/products`
+
+The **All Products** page supports:
+
+- Bank search (case-insensitive substring on `bank`).
+- APR max (`rate_apr <= aprMax`).
+- Minimum income (`min_income >= minIncome`).
+- Maximum income (`min_income <= maxIncome`).
+- Minimum credit score (`min_credit_score >= minCreditScore`).
+- Maximum credit score (`min_credit_score <= maxCreditScore`).
+
+All filters are encoded in the query string and applied server-side via Supabase in `app/products/page.tsx`, with a client-side controller in `components/products/filters-client.tsx`.
 
 ## Badge Logic
 
@@ -139,8 +155,8 @@ The AI integration is intentionally narrow and grounded in the `products` table 
   - `productId` (UUID)
   - `message` (user’s latest question)
   - `history` (structured `{ role, content }[]`)
-  - `userId` (optional UUID for persistence)
-- The route constructs a Supabase server client with `createSupabaseServerClient()`, fetches the product by `productId`, and validates it with `productSchema` to get a strongly typed `Product`.
+- If the user is logged in, `ChatSheet` also attaches a Supabase access token in the `Authorization: Bearer <token>` header.
+- The route constructs a Supabase server client with `createSupabaseServerClient(accessToken)`, fetches the product by `productId`, and validates it with `productSchema` to get a strongly typed `Product`.
 
 ### 2. System prompt grounding
 
@@ -151,6 +167,7 @@ The AI integration is intentionally narrow and grounded in the `products` table 
     - Answer **only** from product data.
     - Do not make assumptions or use outside knowledge.
     - Keep answers concise, professional, and easy to read.
+    - If the user asks for information that is **not** present in the product data, respond with a fail-safe message: `"I don’t have that information in this product’s data."`
 
 ### 3. Messages and OpenAI call
 
@@ -173,12 +190,13 @@ The AI integration is intentionally narrow and grounded in the `products` table 
 ### 4. Persistence
 
 - After generating an answer, `/api/ai/ask` writes two rows into `ai_chat_messages`:
-  - `{ user_id: userId, product_id, role: "user", content: parsed.message }`
-  - `{ user_id: userId, product_id, role: "assistant", content: answer }`
-  - `userId` may be `null` if the chat runs unauthenticated; those rows are not associated with a user.
+  - `{ user_id: currentUserId, product_id, role: "user", content: parsed.message }`
+  - `{ user_id: currentUserId, product_id, role: "assistant", content: answer }`
+  - `currentUserId` is the Supabase auth user if an access token was provided, otherwise `null` (unauthenticated chats are stored without a user).
 - On the client:
-  - `ChatSheet` uses `supabaseClient.auth.getUser()` to load the current Supabase user (if logged in).
+  - `ChatSheet` uses `supabaseClient.auth.getUser()` and `supabaseClient.auth.getSession()` to load the current Supabase user and access token (if logged in).
   - If a user is present, it preloads chat history for that `user_id + product_id` from `ai_chat_messages` and uses it as the initial `history` state.
   - `/conversations` aggregates `ai_chat_messages` joined to `products` to show a per-user "My AI Conversations" overview.
 
-This design keeps the AI responses grounded in Supabase product data, provides a clear badge and dashboard story, and uses middleware to protect the main dashboard and browsing experience, while allowing the AI endpoint itself to be used in both authenticated and unauthenticated modes.
+This design keeps the AI responses grounded in Supabase product data, provides a clear badge and dashboard story, and uses middleware and Supabase auth integration to protect the main dashboard and browsing experience, while still allowing the AI endpoint itself to be used in both authenticated and unauthenticated modes.
+

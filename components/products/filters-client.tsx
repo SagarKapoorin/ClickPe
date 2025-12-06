@@ -11,14 +11,25 @@ type FiltersClientProps = {
   initialAprMax: number;
   initialMinIncome: string;
   initialMinCreditScore: string;
+  initialMaxIncome: string;
+  initialMaxCreditScore: string;
 };
 
 export function FiltersClient(props: FiltersClientProps) {
-  const { initialBank, initialAprMax, initialMinIncome, initialMinCreditScore } = props;
+  const {
+    initialBank,
+    initialAprMax,
+    initialMinIncome,
+    initialMinCreditScore,
+    initialMaxIncome,
+    initialMaxCreditScore,
+  } = props;
   const [bank, setBank] = useState(initialBank);
   const [aprMax, setAprMax] = useState(initialAprMax);
   const [minIncome, setMinIncome] = useState(initialMinIncome);
   const [minCreditScore, setMinCreditScore] = useState(initialMinCreditScore);
+  const [maxIncome, setMaxIncome] = useState(initialMaxIncome);
+  const [maxCreditScore, setMaxCreditScore] = useState(initialMaxCreditScore);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -43,6 +54,16 @@ export function FiltersClient(props: FiltersClientProps) {
       params.set("minCreditScore", minCreditScore.trim());
     } else {
       params.delete("minCreditScore");
+    }
+    if (maxIncome.trim()) {
+      params.set("maxIncome", maxIncome.trim());
+    } else {
+      params.delete("maxIncome");
+    }
+    if (maxCreditScore.trim()) {
+      params.set("maxCreditScore", maxCreditScore.trim());
+    } else {
+      params.delete("maxCreditScore");
     }
     const next = `${pathname}?${params.toString()}`;
     router.push(next);
@@ -78,27 +99,52 @@ export function FiltersClient(props: FiltersClientProps) {
         </div>
         <div className="space-y-1">
           <div className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-            Max Income Requirement
+            Minimum Income
           </div>
           <Input
             type="number"
             min={0}
-         value={minIncome}
+            value={minIncome}
             onChange={(event) => setMinIncome(event.target.value)}
             placeholder="e.g. 50000"
           />
         </div>
         <div className="space-y-1">
           <div className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-            Max Credit Score Requirement
+            Minimum Credit Score
           </div>
           <Input
             type="number"
             min={0}
             max={900}
             value={minCreditScore}
-          onChange={(event) => setMinCreditScore(event.target.value)}
+            onChange={(event) => setMinCreditScore(event.target.value)}
             placeholder="e.g. 750"
+          />
+        </div>
+        <div className="space-y-1">
+          <div className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+            Maximum Income
+          </div>
+          <Input
+            type="number"
+            min={0}
+            value={maxIncome}
+            onChange={(event) => setMaxIncome(event.target.value)}
+            placeholder="e.g. 150000"
+          />
+        </div>
+        <div className="space-y-1">
+          <div className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+            Maximum Credit Score
+          </div>
+          <Input
+            type="number"
+            min={0}
+            max={900}
+            value={maxCreditScore}
+            onChange={(event) => setMaxCreditScore(event.target.value)}
+            placeholder="e.g. 800"
           />
         </div>
       </div>
@@ -110,4 +156,3 @@ export function FiltersClient(props: FiltersClientProps) {
     </div>
   );
 }
-

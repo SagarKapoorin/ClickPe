@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabaseClient } from "@/lib/supabase-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,21 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirectTo") || "/dashboard";
+  useEffect(() => {
+    const checkExistingSession = async () => {
+      const { data } = await supabaseClient.auth.getUser();
+      if (data.user) {
+        if (typeof document !== "undefined") {
+          document.cookie = "lp_logged_in=1; path=/; max-age=604800";
+        }
+        router.replace(redirectTo);
+      }
+    };
+
+    void checkExistingSession();
+  }, [router, redirectTo]);
 
   const handleSubmit = async () => {
     const trimmedEmail = email.trim();
@@ -61,7 +76,11 @@ export default function AuthPage() {
         }
       }
 
-      router.push("/dashboard");
+      if (typeof document !== "undefined") {
+        document.cookie = "lp_logged_in=1; path=/; max-age=604800";
+      }
+
+      router.push(redirectTo);
     } catch (authError) {
       const message =
         authError instanceof Error
@@ -140,4 +159,3 @@ export default function AuthPage() {
     </div>
   );
 }
-

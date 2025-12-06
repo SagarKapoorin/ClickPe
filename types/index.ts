@@ -67,7 +67,6 @@ export const aiAskRequestSchema = z.object({
   productId: z.string().uuid(),
   message: z.string().min(1),
   history: z.array(chatHistoryItemSchema).default([]),
-  userId: z.string().uuid().optional().nullable(),
 });
 
 export type AiAskRequest = z.infer<typeof aiAskRequestSchema>;
