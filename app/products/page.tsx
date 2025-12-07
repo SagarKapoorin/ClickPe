@@ -72,31 +72,38 @@ export default async function ProductsPage({
 
   return (
     <div className="mx-auto flex min-h-screen max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
-      <header className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-          All Loan Products
-        </h1>
-        <p className="max-w-2xl text-sm text-zinc-600 dark:text-zinc-400">
-          Browse and filter loans by bank, APR, income, and credit score to find the right fit.
-        </p>
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-2">
+          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+            All Loan Products
+          </h1>
+          <p className="max-w-2xl text-sm text-zinc-600 dark:text-zinc-400">
+            Browse and filter loans by bank, APR, income, and credit score to find the right fit.
+          </p>
+        </div>
+        <div className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+          Filters update results in real time
+        </div>
       </header>
-      <Suspense>
-        <FiltersClient
-          initialBank={resolvedSearchParams?.bank ?? ""}
-          initialAprMax={aprMaxValue}
-          initialMinIncome={resolvedSearchParams?.minIncome ?? ""}
-          initialMinCreditScore={resolvedSearchParams?.minCreditScore ?? ""}
-          initialMaxIncome={resolvedSearchParams?.maxIncome ?? ""}
-          initialMaxCreditScore={resolvedSearchParams?.maxCreditScore ?? ""}
-        />
-      </Suspense>
-      <section className="mt-4">
-         {products.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-zinc-300 p-6 text-sm text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+      <section className="rounded-3xl border border-zinc-200 bg-white/80 p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/80">
+        <Suspense>
+          <FiltersClient
+            initialBank={resolvedSearchParams?.bank ?? ""}
+            initialAprMax={aprMaxValue}
+            initialMinIncome={resolvedSearchParams?.minIncome ?? ""}
+            initialMinCreditScore={resolvedSearchParams?.minCreditScore ?? ""}
+            initialMaxIncome={resolvedSearchParams?.maxIncome ?? ""}
+            initialMaxCreditScore={resolvedSearchParams?.maxCreditScore ?? ""}
+          />
+        </Suspense>
+      </section>
+      <section className="mt-2">
+        {products.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-zinc-300 bg-white/60 p-6 text-sm text-zinc-500 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/60 dark:text-zinc-400">
             No products match your filters. Try adjusting the criteria.
           </div>
         ) : (
-  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {products.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}

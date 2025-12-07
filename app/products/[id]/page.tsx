@@ -55,7 +55,7 @@ export default async function ProductDetailPage({
           Review this loan&apos;s key terms and continue your AI conversation.
         </p>
       </header>
-      <Card className="flex flex-col gap-3">
+      <Card className="flex flex-col gap-4 border-zinc-200 bg-white/80 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/80">
         <CardHeader>
           <div className="flex items-start justify-between gap-2">
             <div className="space-y-1">
@@ -132,7 +132,7 @@ export default async function ProductDetailPage({
               product={product}
               trigger={
                 <div className="w-full">
-                  <span className="inline-flex h-9 w-full items-center justify-center rounded-full bg-zinc-900 px-4 text-sm font-medium text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200">
+                  <span className="inline-flex h-10 w-full items-center justify-center rounded-full bg-zinc-900 px-4 text-sm font-medium text-zinc-50 shadow-sm hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200">
                     Open AI chat
                   </span>
                 </div>
