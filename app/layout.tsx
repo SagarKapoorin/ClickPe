@@ -14,8 +14,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Loan APP",
+  title: "Loan Picks",
   description: "Get instant loan approvals with our AI-powered app.",
+  icons: {
+    icon: "/loan.webp",
+  },
 };
 
 export default function RootLayout({
