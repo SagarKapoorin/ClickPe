@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabaseClient } from "@/lib/supabase-client";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 
 type AuthMode = "login" | "signup";
 
-export default function AuthPage() {
+function AuthPageContent() {
   const [mode, setMode] = useState<AuthMode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -98,18 +98,20 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 px-4 dark:bg-black">
-      <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-        <h1 className="mb-1 text-xl font-semibold text-zinc-900 dark:text-zinc-50">
-          {mode === "login" ? "Log in to Loan Picks" : "Create your account"}
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-zinc-50 to-zinc-100 px-4 dark:from-zinc-950 dark:to-black">
+      <div className="w-full max-w-md rounded-3xl border-2 border-zinc-200 bg-white p-8 shadow-xl dark:border-zinc-800 dark:bg-zinc-950">
+        <h1 className="mb-2 text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+          {mode === "login" ? "Welcome Back" : "Create Account"}
         </h1>
-        <p className="mb-6 text-sm text-zinc-500 dark:text-zinc-400">
-          Use your email and a password to continue. You can view your saved chats when logged in.
+        <p className="mb-8 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+          {mode === "login"
+            ? "Log in to access your personalized loan recommendations and saved chats."
+            : "Sign up to get started with personalized loan recommendations and AI assistance."}
         </p>
-        <div className="space-y-4">
-          <div className="space-y-1">
-            <div className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-              Email
+        <div className="space-y-5">
+          <div className="space-y-2">
+            <div className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+              Email Address
             </div>
             <Input
               type="email"
@@ -118,8 +120,8 @@ export default function AuthPage() {
               placeholder="you@example.com"
             />
           </div>
-          <div className="space-y-1">
-            <div className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+          <div className="space-y-2">
+            <div className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
               Password
             </div>
             <Input
@@ -130,25 +132,26 @@ export default function AuthPage() {
             />
           </div>
           {error && (
-            <div className="text-xs text-red-500">
+            <div className="rounded-xl bg-red-50 p-3 text-xs font-semibold text-red-600 dark:bg-red-950/50 dark:text-red-400">
               {error}
             </div>
           )}
           <Button
             className="w-full"
+            size="lg"
             onClick={handleSubmit}
             disabled={loading}
           >
             {loading
               ? "Please wait..."
               : mode === "login"
-              ? "Log in"
-              : "Sign up"}
+              ? "Log In"
+              : "Sign Up"}
           </Button>
           <button
             type="button"
             onClick={handleToggleMode}
-            className="w-full text-center text-xs text-zinc-600 underline underline-offset-4 dark:text-zinc-400"
+            className="w-full text-center text-sm font-semibold text-zinc-600 underline underline-offset-4 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
           >
             {mode === "login"
               ? "Need an account? Sign up"
@@ -157,5 +160,13 @@ export default function AuthPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense>
+      <AuthPageContent />
+    </Suspense>
   );
 }
