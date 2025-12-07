@@ -11,6 +11,7 @@ type AuthMode = "login" | "signup";
 
 function AuthPageContent() {
   const [mode, setMode] = useState<AuthMode>("login");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -37,7 +38,13 @@ function AuthPageContent() {
 
   const handleSubmit = async () => {
     const trimmedEmail = email.trim();
-    if (!trimmedEmail || !password || loading) {
+    const trimmedName = name.trim();
+    if (
+      !trimmedEmail ||
+      !password ||
+      loading ||
+      (mode === "signup" && !trimmedName)
+    ) {
       return;
     }
 
@@ -60,7 +67,7 @@ function AuthPageContent() {
           await supabaseClient.from("users").upsert({
             id: user.id,
             email: user.email,
-            display_name: user.email,
+            display_name: trimmedName || user.email,
           });
         }
 
@@ -107,7 +114,7 @@ function AuthPageContent() {
           await supabaseClient.from("users").upsert({
             id: user.id,
             email: user.email,
-            display_name: user.email,
+            display_name: trimmedName || user.email,
           });
         }
 
@@ -186,6 +193,22 @@ function AuthPageContent() {
           </div>
 
           <div className="space-y-4">
+            {mode === "signup" && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-zinc-600 dark:text-zinc-300">
+                  Full name
+                </label>
+                <Input
+                  type="text"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  placeholder="Jane Doe"
+                  disabled={loading}
+                  className="h-10 rounded-xl"
+                />
+              </div>
+            )}
+
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-zinc-600 dark:text-zinc-300">
                 Email address

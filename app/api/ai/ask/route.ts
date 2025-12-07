@@ -23,7 +23,6 @@ STRICT INSTRUCTIONS:
 1. Answer solely using the Product Data provided below.
 2. Do not use outside knowledge or make assumptions about missing data.
 3. Keep answers concise, professional, and easy to read.
-4. If the user asks for information that is NOT present in the Product Data, reply: "I don’t have that information in this product’s data."
 
 PRODUCT DATA:
 ${JSON.stringify(product, null, 2)}

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 type AuthUser = {
   id: string;
   email: string;
+  displayName: string | null;
 };
 
 export function UserMenu() {
@@ -16,39 +17,73 @@ export function UserMenu() {
   const router = useRouter();
 
   useEffect(() => {
-    const applySessionUser = (sessionUser: { id: string; email?: string | null } | null) => {
-      if (sessionUser?.id && sessionUser.email) {
-        setUser({
-          id: sessionUser.id,
-          email: sessionUser.email,
-        });
-      } else {
-        setUser(null);
-      }
+    const load = async () => {
+      const { data } = await supabaseClient.auth.getUser();
+      const sessionUser = data.user ?? null;
 
-      if (typeof document !== "undefined") {
-        if (sessionUser?.id && sessionUser.email) {
-          document.cookie = "lp_logged_in=1; path=/; max-age=604800";
-        } else {
+      if (!sessionUser?.id || !sessionUser.email) {
+        setUser(null);
+
+        if (typeof document !== "undefined") {
           document.cookie = "lp_logged_in=; path=/; max-age=0";
         }
+
+        setLoading(false);
+        return;
+      }
+
+      const { data: profileData } = await supabaseClient
+        .from("users")
+        .select("display_name")
+        .eq("id", sessionUser.id)
+        .maybeSingle();
+
+      setUser({
+        id: sessionUser.id,
+        email: sessionUser.email,
+        displayName: profileData?.display_name ?? null,
+      });
+
+      if (typeof document !== "undefined") {
+        document.cookie = "lp_logged_in=1; path=/; max-age=604800";
       }
 
       setLoading(false);
     };
 
-    const load = async () => {
-      const { data } = await supabaseClient.auth.getUser();
-      applySessionUser(data.user ?? null);
-    };
-
     void load();
 
-    const { data: subscriptionData } = supabaseClient.auth.onAuthStateChange(
-      (_event, session) => {
-        applySessionUser(session?.user ?? null);
-      }
-    );
+    const { data: subscriptionData } = supabaseClient.auth.onAuthStateChange((_event, session) => {
+      void (async () => {
+        const sessionUser = session?.user ?? null;
+
+        if (!sessionUser?.id || !sessionUser.email) {
+          setUser(null);
+
+          if (typeof document !== "undefined") {
+            document.cookie = "lp_logged_in=; path=/; max-age=0";
+          }
+
+          return;
+        }
+
+        const { data: profileData } = await supabaseClient
+          .from("users")
+          .select("display_name")
+          .eq("id", sessionUser.id)
+          .maybeSingle();
+
+        setUser({
+          id: sessionUser.id,
+          email: sessionUser.email,
+          displayName: profileData?.display_name ?? null,
+        });
+
+        if (typeof document !== "undefined") {
+          document.cookie = "lp_logged_in=1; path=/; max-age=604800";
+        }
+      })();
+    });
 
     return () => {
       subscriptionData.subscription.unsubscribe();
@@ -83,7 +118,7 @@ export function UserMenu() {
   return (
     <div className="flex items-center gap-3">
       <span className="max-w-[160px] truncate text-xs text-zinc-600 dark:text-zinc-300">
-        {user.email}
+        {user.displayName || user.email}
       </span>
       <Button
         variant="outline"
