@@ -25,6 +25,15 @@ export function UserMenu() {
       } else {
         setUser(null);
       }
+
+      if (typeof document !== "undefined") {
+        if (sessionUser?.id && sessionUser.email) {
+          document.cookie = "lp_logged_in=1; path=/; max-age=604800";
+        } else {
+          document.cookie = "lp_logged_in=; path=/; max-age=0";
+        }
+      }
+
       setLoading(false);
     };
 
