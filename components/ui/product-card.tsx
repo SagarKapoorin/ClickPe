@@ -1,3 +1,7 @@
+"use client";
+
+import type { KeyboardEvent } from "react";
+import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +29,7 @@ function getProductTypeLabel(type: Product["type"]): string {
 
 export function ProductCard(props: ProductCardProps) {
   const { product, highlight = false, rankLabel } = props;
+  const router = useRouter();
 
   const badges: string[] = [];
 
@@ -32,74 +37,90 @@ export function ProductCard(props: ProductCardProps) {
   if (product.disbursal_speed === "fast") badges.push("Fast Disbursal");
   if (product.docs_level === "low") badges.push("Low Docs");
   if (product.prepayment_allowed) badges.push("No Prepayment Fee");
-
+  const handleOpenDetails = () => {
+    router.push(`/products/${product.id}`);
+  };
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      handleOpenDetails();
+    }
+  };
   return (
-    <Card className="flex h-full flex-col gap-2">
-      <CardHeader>
-        <div className="flex items-start justify-between gap-2">
-          <div className="space-y-1">
-            <CardTitle>{product.name}</CardTitle>
-            <CardDescription>{product.bank}</CardDescription>
+    <div
+      className="h-full cursor-pointer"
+      role="button"
+      tabIndex={0}
+      onClick={handleOpenDetails}
+      onKeyDown={handleKeyDown}
+    >
+      <Card className="flex h-full flex-col gap-2">
+        <CardHeader>
+          <div className="flex items-start justify-between gap-2">
+            <div className="space-y-1">
+              <CardTitle>{product.name}</CardTitle>
+              <CardDescription>{product.bank}</CardDescription>
+            </div>
+            <div className="flex flex-col items-end gap-1">
+              {highlight && (
+                <Badge variant="success">
+                  Best Match
+                </Badge>
+              )}
+              {rankLabel && (
+                <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                  {rankLabel}
+                </span>
+              )}
+            </div>
           </div>
-          <div className="flex flex-col items-end gap-1">
-            {highlight && (
-              <Badge variant="success">
-                Best Match
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap items-center gap-3 text-sm">
+            <div>
+              <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                Type
+              </div>
+              <div className="font-medium">
+                {getProductTypeLabel(product.type)}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                APR
+              </div>
+              <div className="font-semibold">
+                {product.rate_apr.toFixed(2)}%
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                Tenure
+              </div>
+              <div className="font-medium">
+                {product.tenure_min_months}-{product.tenure_max_months} months
+              </div>
+            </div>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-1">
+            {badges.map((badge) => (
+              <Badge key={badge} variant="outline">
+                {badge}
               </Badge>
+            ))}
+          </div>
+        </CardContent>
+        <CardFooter onClick={(event) => event.stopPropagation()}>
+          <ChatSheet
+            product={product}
+            trigger={(
+              <Button className="w-full" size="md">
+                Ask AI
+              </Button>
             )}
-            {rankLabel && (
-              <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                {rankLabel}
-              </span>
-            )}
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-wrap items-center gap-3 text-sm">
-          <div>
-            <div className="text-xs text-zinc-500 dark:text-zinc-400">
-              Type
-            </div>
-            <div className="font-medium">
-              {getProductTypeLabel(product.type)}
-            </div>
-          </div>
-          <div>
-            <div className="text-xs text-zinc-500 dark:text-zinc-400">
-              APR
-            </div>
-            <div className="font-semibold">
-              {product.rate_apr.toFixed(2)}%
-            </div>
-          </div>
-          <div>
-            <div className="text-xs text-zinc-500 dark:text-zinc-400">
-              Tenure
-            </div>
-            <div className="font-medium">
-              {product.tenure_min_months}-{product.tenure_max_months} months
-            </div>
-          </div>
-        </div>
-        <div className="mt-3 flex flex-wrap gap-1">
-          {badges.map((badge) => (
-            <Badge key={badge} variant="outline">
-              {badge}
-            </Badge>
-          ))}
-        </div>
-      </CardContent>
-      <CardFooter>
-        <ChatSheet
-          product={product}
-          trigger={(
-            <Button className="w-full" size="md">
-              Ask AI
-            </Button>
-          )}
-        />
-      </CardFooter>
-    </Card>
+          />
+        </CardFooter>
+      </Card>
+    </div>
   );
 }

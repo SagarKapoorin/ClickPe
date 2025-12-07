@@ -44,6 +44,7 @@ export default async function ProductDetailPage({
   if (product.disbursal_speed === "fast") badges.push("Fast Disbursal");
   if (product.docs_level === "low") badges.push("Low Docs");
   if (product.prepayment_allowed) badges.push("No Prepayment Fee");
+  const termsEntries = Object.entries(product.terms ?? {}).slice(0, 3);
 
   return (
     <div className="mx-auto flex min-h-screen max-w-4xl flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
@@ -121,9 +122,72 @@ export default async function ProductDetailPage({
             </div>
           </div>
         </CardContent>
+        <CardContent className="border-t border-zinc-100 pt-4 text-sm dark:border-zinc-800">
+          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+            Key details
+          </h2>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                Disbursal speed
+              </div>
+              <div className="font-medium">
+                {product.disbursal_speed}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                Documentation level
+              </div>
+              <div className="font-medium">
+                {product.docs_level}
+              </div>
+            </div>
+          </div>
+        </CardContent>
         {product.summary && (
           <CardContent className="text-sm text-zinc-600 dark:text-zinc-300">
             {product.summary}
+          </CardContent>
+        )}
+        {product.faq.length > 0 && (
+          <CardContent className="space-y-3 border-t border-zinc-100 pt-4 text-sm dark:border-zinc-800">
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+              FAQs
+            </h2>
+            <div className="space-y-3">
+              {product.faq.map((item, index) => (
+                <div key={`${item.question}-${index}`} className="space-y-1">
+                  <div className="font-medium text-zinc-900 dark:text-zinc-50">
+                    {item.question}
+                  </div>
+                  <div className="text-sm text-zinc-600 dark:text-zinc-300">
+                    {item.answer}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        )}
+        {termsEntries.length > 0 && (
+          <CardContent className="space-y-2 border-t border-zinc-100 pt-4 text-sm dark:border-zinc-800">
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+              Key terms
+            </h2>
+            <dl className="grid gap-3 md:grid-cols-2">
+              {termsEntries.map(([key, value]) => (
+                <div key={key}>
+                  <dt className="text-xs text-zinc-500 dark:text-zinc-400">
+                    {key}
+                  </dt>
+                  <dd className="font-medium text-zinc-900 dark:text-zinc-50">
+                    {typeof value === "string"
+                      ? value
+                      : JSON.stringify(value)}
+                  </dd>
+                </div>
+              ))}
+            </dl>
           </CardContent>
         )}
         <CardFooter>
