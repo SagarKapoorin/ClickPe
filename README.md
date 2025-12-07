@@ -1,6 +1,8 @@
 # The Loan Picks Dashboard
 
 AI-assisted loan discovery dashboard built with Next.js App Router, TypeScript, Tailwind, shadcn-style UI, Supabase, Zod, and OpenAI.
+Working Link: https://click-pe-tau.vercel.app
+Working video: https://drive.google.com/file/d/1a80rt9NqCS0kXa8l-2EzEDmGzJfUzxHX/view?usp=sharing
 
 ## Architecture
 
